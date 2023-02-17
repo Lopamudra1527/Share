@@ -1,0 +1,46 @@
+package com.example.demo.config;
+
+import javax.sql.DataSource;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.provisioning.JdbcUserDetailsManager;
+import org.springframework.security.provisioning.UserDetailsManager;
+import org.springframework.security.web.SecurityFilterChain;
+
+@Configuration
+public class SecurityConfig 
+{
+	@Autowired
+	private BCryptPasswordEncoder encoder;
+	
+	@Autowired
+	DataSource dataSource;
+	
+	@Bean
+	public UserDetailsManager details(DataSource dataSource)
+	{
+		JdbcUserDetailsManager jdbcMgr = new JdbcUserDetailsManager(dataSource);
+		
+		String userNameQuery ="Select username, password, enabled from users where username=?";
+		String authQuery="Select username, authority from authorities where username=?";
+		
+		jdbcMgr.setUsersByUsernameQuery(userNameQuery);
+		jdbcMgr.setAuthoritiesByUsernameQuery(authQuery);
+		
+		return jdbcMgr;
+	}
+	
+	@Bean
+	public SecurityFilterChain chain(HttpSecurity http)throws Exception
+	{
+		http.csrf().disable().authorizeHttpRequests().antMatchers("/teachers").permitAll()
+		.and().authorizeHttpRequests().antMatchers("/student").authenticated().and().httpBasic().and().formLogin()
+	      .loginPage("/customURL");
+		
+		return http.build();
+	}
+}
